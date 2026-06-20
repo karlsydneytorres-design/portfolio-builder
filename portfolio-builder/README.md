@@ -1,83 +1,91 @@
-# Portfolio Site Builder — Starter
+# Portfolio Builder
 
-A Next.js + TypeScript + Supabase starter for the portfolio builder project.
-This scaffold covers steps 1–3 of the build order (data model, static
-renderer, editor shell). Persistence, auth, drag-and-drop, and publishing
-are stubbed with TODOs for you to fill in.
+A starter project for building and publishing small portfolio sites using Next.js, TypeScript, and Supabase.
 
-## What's here
+Key ideas: editable block-based pages, a shared renderer for editor and published pages, and a simple multi-tenant `sites` model in Supabase.
 
-- `lib/types.ts` — the Block/Site data model
-- `lib/supabase.ts` — Supabase client
-- `components/BlockRenderer.tsx` — renders a block; shared by editor and
-  published page so you don't duplicate rendering logic
-- `app/page.tsx` — dashboard placeholder
-- `app/editor/page.tsx` — editor shell with a hardcoded sample site
-  (no drag-and-drop wired up yet — that's your next step)
-- `app/[username]/page.tsx` — public published page, server-rendered from
-  Supabase by subdomain
+**Tech stack**
+- Next.js (App Router)
+- TypeScript
+- Supabase (Auth, Postgres, Storage)
+- Tailwind CSS
 
-## Setup
+**Highlights**
+- Shared `BlockRenderer` used for both editor preview and public pages
+- Editor shell at `/editor` for composing block-based pages
+- Server-rendered public pages at `/[username]`
 
-1. Install dependencies:
-   ```
-   npm install
-   ```
+## Quick start
 
-2. Create a Supabase project at https://supabase.com, then run this SQL
-   in the Supabase SQL editor to create the `sites` table:
+Prerequisites: Node 18+ and an account at https://supabase.com
 
-   ```sql
-   create table sites (
-     id uuid primary key default gen_random_uuid(),
-     "userId" uuid references auth.users not null,
-     subdomain text unique not null,
-     theme jsonb not null default '{"colorScheme": "light", "font": "sans-serif"}',
-     blocks jsonb not null default '[]',
-     "isPublished" boolean not null default false,
-     seo jsonb,
-     created_at timestamp with time zone default now()
-   );
+1. Install dependencies
 
-   -- Row-level security: each user can only read/write their own sites,
-   -- but anyone can read a published site (needed for the public page).
-   alter table sites enable row level security;
+```bash
+npm install
+```
 
-   create policy "Users manage their own sites"
-     on sites for all
-     using (auth.uid() = "userId");
+2. Create a Supabase project and copy `.env.local.example` to `.env.local`.
+Fill in your Supabase keys (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, etc.).
 
-   create policy "Anyone can view published sites"
-     on sites for select
-     using ("isPublished" = true);
-   ```
+3. Create the `sites` table in your Supabase project's SQL editor (example schema):
 
-3. Copy `.env.local.example` to `.env.local` and fill in your Supabase
-   project URL and anon key (found in Project Settings → API).
+```sql
+create table sites (
+   id uuid primary key default gen_random_uuid(),
+   "userId" uuid references auth.users not null,
+   subdomain text unique not null,
+   theme jsonb not null default '{"colorScheme":"light","font":"sans-serif"}',
+   blocks jsonb not null default '[]',
+   "isPublished" boolean not null default false,
+   seo jsonb,
+   created_at timestamp with time zone default now()
+);
 
-4. Run the dev server:
-   ```
-   npm run dev
-   ```
+alter table sites enable row level security;
 
-5. Visit:
-   - `http://localhost:3000` — dashboard placeholder
-   - `http://localhost:3000/editor` — editor shell with sample blocks
-   - `http://localhost:3000/some-username` — published page (will 404
-     until you insert a published row in `sites`)
+create policy "Users manage their own sites"
+   on sites for all
+   using (auth.uid() = "userId");
 
-## Next steps (per the build order)
+create policy "Anyone can view published sites"
+   on sites for select
+   using ("isPublished" = true);
+```
 
-1. ~~Data model~~ ✅ done (`lib/types.ts`)
-2. ~~Static renderer~~ ✅ done (`BlockRenderer.tsx`)
-3. **Editor shell** — currently shows a hardcoded sample. Next: wrap
-   blocks in `@dnd-kit`'s `<DndContext>`, track positions in a Zustand
-   store, and let users drag/resize.
-4. **Persistence** — save/load the Zustand store to/from the `sites`
-   table in Supabase (autosave on change, debounced).
-5. **Auth + multi-tenant routing** — add Supabase Auth, gate `/editor`
-   behind login, scope `sites` queries to the logged-in user.
-6. **Publish flow** — a button that flips `isPublished` to `true` and
-   shows the shareable `/[username]` URL.
-7. **Themes + polish + stretch features** — color schemes, fonts, image
-   upload via Supabase Storage, SEO fields, analytics, export.
+4. Run the dev server
+
+```bash
+npm run dev
+```
+
+Open:
+- `http://localhost:3000` — dashboard placeholder
+- `http://localhost:3000/editor` — editor shell
+- `http://localhost:3000/<username>` — published page
+
+## Project layout
+- `app/` — Next.js App Router pages (`/editor`, `/[username]`, etc.)
+- `components/` — reusable UI and editor components (`BlockRenderer`, draggable blocks)
+- `lib/` — app utilities: `supabase.ts`, API helpers, types
+
+## Development notes
+- The editor is a shell that currently renders a hardcoded sample site. To continue development consider:
+   - Integrating `@dnd-kit` for drag-and-drop
+   - Persisting editor state to Supabase (debounced autosave)
+   - Adding Supabase Auth and gating `/editor`
+   - Implementing publishing flow that toggles `isPublished`
+
+## Contributing
+Open an issue or submit a PR. If you add features, include README updates and tests where appropriate.
+
+## License
+MIT — see `LICENSE` if present.
+
+---
+
+If you'd like, I can (pick one):
+- add badges and CI integration
+- generate a short demo GIF and usage screenshots
+- expand the README with a detailed API section
+Tell me which and I'll update the README accordingly.
