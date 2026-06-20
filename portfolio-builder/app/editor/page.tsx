@@ -5,12 +5,23 @@ import { useRouter } from "next/navigation";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useEditorStore } from "@/lib/store";
 import DraggableBlock from "@/components/DraggableBlock";
+import AddBlockPanel from "@/components/AddBlockPanel";
+import BlockEditorPanel from "@/components/BlockEditorPanel";
 import { saveBlocks, getOrCreateSite, setPublishStatus, saveTheme } from "@/lib/api";
 import ThemePicker, { getColorScheme } from "@/components/ThemePicker";
 import { supabase } from "@/lib/supabase";
 
 export default function EditorPage() {
-  const { blocks, setBlocks, updateBlockPosition } = useEditorStore();
+  const {
+    blocks,
+    setBlocks,
+    updateBlockPosition,
+    selectedBlockId,
+    addBlock,
+    updateBlockContent,
+    deleteBlock,
+    selectBlock,
+  } = useEditorStore();
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     "idle"
   );
@@ -117,6 +128,7 @@ export default function EditorPage() {
         )}
 
         <ThemePicker theme={theme} onChange={handleThemeChange} />
+        <AddBlockPanel onAdd={addBlock} />
       </div>
       <DndContext onDragEnd={handleDragEnd}>
         <div
@@ -136,11 +148,29 @@ export default function EditorPage() {
                 top: block.position.y,
               }}
             >
-              <DraggableBlock block={block} />
+              <DraggableBlock
+                block={block}
+                onSelect={() => selectBlock(block.id)}
+                isSelected={block.id === selectedBlockId}
+              />
             </div>
           ))}
         </div>
       </DndContext>
+
+      {selectedBlockId &&
+        (() => {
+          const selected = blocks.find((b) => b.id === selectedBlockId);
+          if (!selected) return null;
+          return (
+            <BlockEditorPanel
+              block={selected}
+              onChange={(content) => updateBlockContent(selected.id, content)}
+              onDelete={() => deleteBlock(selected.id)}
+              onClose={() => selectBlock(null)}
+            />
+          );
+        })()}
     </main>
   );
 }

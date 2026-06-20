@@ -2,7 +2,15 @@ import { useDraggable } from "@dnd-kit/core";
 import { Block } from "@/lib/types";
 import BlockRenderer from "./BlockRenderer";
 
-export default function DraggableBlock({ block }: { block: Block }) {
+export default function DraggableBlock({
+  block,
+  onSelect,
+  isSelected,
+}: {
+  block: Block;
+  onSelect?: () => void;
+  isSelected?: boolean;
+}) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: block.id,
   });
@@ -19,7 +27,10 @@ export default function DraggableBlock({ block }: { block: Block }) {
       style={style}
       {...listeners}
       {...attributes}
-      className="cursor-move"
+      onClick={onSelect}
+      className={`cursor-move ${
+        isSelected ? "outline outline-2 outline-blue-500" : ""
+      }`}
     >
       <BlockRenderer block={block} />
     </div>

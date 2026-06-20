@@ -3,7 +3,7 @@ import { getColorScheme } from "@/components/ThemePicker";
 import { supabase } from "@/lib/supabase";
 import { Site } from "@/lib/types";
 import { notFound } from "next/navigation";
-
+export const dynamic = "force-dynamic";
 async function getSite(username: string): Promise<Site | null> {
   const { data, error } = await supabase
     .from("sites")
