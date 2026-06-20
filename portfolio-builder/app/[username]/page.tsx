@@ -1,10 +1,8 @@
 import BlockRenderer from "@/components/BlockRenderer";
+import { getColorScheme } from "@/components/ThemePicker";
 import { supabase } from "@/lib/supabase";
 import { Site } from "@/lib/types";
 import { notFound } from "next/navigation";
-
-// Public published page: app/[username]/page.tsx
-// Server-rendered, no editing logic, same BlockRenderer as the editor.
 
 async function getSite(username: string): Promise<Site | null> {
   const { data, error } = await supabase
@@ -29,8 +27,17 @@ export default async function PublishedSitePage({
     notFound();
   }
 
+  const scheme = getColorScheme(site.theme?.colorScheme ?? "light");
+
   return (
-    <main className="relative min-h-screen w-full">
+    <main
+      className="relative min-h-screen w-full"
+      style={{
+        backgroundColor: scheme.bg,
+        color: scheme.text,
+        fontFamily: site.theme?.font ?? "sans-serif",
+      }}
+    >
       {site.blocks.map((block) => (
         <BlockRenderer key={block.id} block={block} />
       ))}

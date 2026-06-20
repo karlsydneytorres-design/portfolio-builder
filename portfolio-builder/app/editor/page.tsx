@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useEditorStore } from "@/lib/store";
 import DraggableBlock from "@/components/DraggableBlock";
-import { saveBlocks, getOrCreateSite, setPublishStatus } from "@/lib/api";
+import { saveBlocks, getOrCreateSite, setPublishStatus, saveTheme } from "@/lib/api";
+import ThemePicker, { getColorScheme } from "@/components/ThemePicker";
 import { supabase } from "@/lib/supabase";
 
 export default function EditorPage() {
@@ -16,6 +17,7 @@ export default function EditorPage() {
   const [siteId, setSiteId] = useState<string | null>(null);
   const [subdomain, setSubdomain] = useState<string | null>(null);
   const [isPublished, setIsPublished] = useState(false);
+  const [theme, setTheme] = useState({ colorScheme: "light", font: "sans-serif" });
   const router = useRouter();
 
   useEffect(() => {
@@ -33,6 +35,7 @@ export default function EditorPage() {
       setSiteId(site.id);
       setSubdomain(site.subdomain);
       setIsPublished(site.isPublished);
+      setTheme(site.theme ?? { colorScheme: "light", font: "sans-serif" });
       setBlocks(site.blocks ?? []);
     }
 
@@ -73,6 +76,16 @@ export default function EditorPage() {
     }
   }
 
+  async function handleThemeChange(newTheme: typeof theme) {
+    setTheme(newTheme);
+    if (!siteId) return;
+    try {
+      await saveTheme(siteId, newTheme);
+    } catch (err) {
+      console.error("Failed to save theme:", err);
+    }
+  }
+
   return (
     <main className="relative h-screen w-full bg-gray-50">
       <div className="absolute left-0 top-0 z-10 flex items-center gap-3 bg-white p-2 text-sm text-gray-500 shadow">
@@ -102,9 +115,18 @@ export default function EditorPage() {
             View live site →
           </a>
         )}
+
+        <ThemePicker theme={theme} onChange={handleThemeChange} />
       </div>
       <DndContext onDragEnd={handleDragEnd}>
-        <div className="relative h-full w-full">
+        <div
+          className="relative h-full w-full"
+          style={{
+            fontFamily: theme.font,
+            backgroundColor: getColorScheme(theme.colorScheme).bg,
+            color: getColorScheme(theme.colorScheme).text,
+          }}
+        >
           {blocks.map((block) => (
             <div
               key={block.id}

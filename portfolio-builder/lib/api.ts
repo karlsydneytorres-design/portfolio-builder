@@ -48,3 +48,14 @@ export async function setPublishStatus(siteId: string, isPublished: boolean) {
 
   if (error) throw error;
 }
+export async function saveTheme(
+  siteId: string,
+  theme: { colorScheme: string; font: string }
+) {
+  const { error } = await supabase
+    .from("sites")
+    .update({ theme })
+    .eq("id", siteId);
+
+  if (error) throw error;
+}
