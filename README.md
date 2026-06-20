@@ -1,34 +1,91 @@
-# Portfolio Builder (repository root)
+# Portfolio Builder
 
-This repository contains the Portfolio Builder starter project.
+A starter project for building and publishing small portfolio sites using Next.js, TypeScript, and Supabase.
 
-Note: the actual Next.js app lives in the `portfolio-builder/` subfolder.
-If GitHub previously showed "Add a README", it was because the repository root did not contain a `README.md` file — only the nested `portfolio-builder/portfolio-builder/README.md` existed.
+Key ideas: editable block-based pages, a shared renderer for editor and published pages, and a simple multi-tenant `sites` model in Supabase.
 
-What I did:
-- Added this `README.md` at the repository root so GitHub will render it on the repository page.
+**Tech stack** 
+- Next.js (App Router)
+- TypeScript
+- Supabase (Auth, Postgres, Storage)
+- Tailwind CSS
 
-If you prefer the root README to mirror the full project README, move or copy the content from `portfolio-builder/portfolio-builder/README.md` into this file.
+**Highlights**
+- Shared `BlockRenderer` used for both editor preview and public pages
+- Editor shell at `/editor` for composing block-based pages
+- Server-rendered public pages at `/[username]`
 
-Next steps (locally):
+## Quick start
 
-Add, commit, and push this file so GitHub updates the repository page:
+Prerequisites: Node 18+ and an account at https://supabase.com
+
+1. Install dependencies
 
 ```bash
-git add README.md
-git commit -m "Add repository root README to make GitHub display project info"
-git push
+npm install
 ```
 
-Or, if you want to keep a single README, move the file into the repository root instead:
+2. Create a Supabase project and copy `.env.local.example` to `.env.local`.
+Fill in your Supabase keys (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, etc.).
+
+3. Create the `sites` table in your Supabase project's SQL editor (example schema):
+
+```sql
+create table sites (
+   id uuid primary key default gen_random_uuid(),
+   "userId" uuid references auth.users not null,
+   subdomain text unique not null,
+   theme jsonb not null default '{"colorScheme":"light","font":"sans-serif"}',
+   blocks jsonb not null default '[]',
+   "isPublished" boolean not null default false,
+   seo jsonb,
+   created_at timestamp with time zone default now()
+);
+
+alter table sites enable row level security;
+
+create policy "Users manage their own sites"
+   on sites for all
+   using (auth.uid() = "userId");
+
+create policy "Anyone can view published sites"
+   on sites for select
+   using ("isPublished" = true);
+```
+
+4. Run the dev server
 
 ```bash
-# move existing README up one level (from inside the subfolder)
-# adjust path if your local layout is different
-mv portfolio-builder/portfolio-builder/README.md README.md
-git add README.md
-git commit -m "Move README to repository root"
-git push
+npm run dev
 ```
 
-If you'd like, I can move the README for you and update the inner folder to avoid duplicates — tell me which you prefer.
+Open:
+- `http://localhost:3000` — dashboard placeholder
+- `http://localhost:3000/editor` — editor shell
+- `http://localhost:3000/<username>` — published page
+
+## Project layout
+- `app/` — Next.js App Router pages (`/editor`, `/[username]`, etc.)
+- `components/` — reusable UI and editor components (`BlockRenderer`, draggable blocks)
+- `lib/` — app utilities: `supabase.ts`, API helpers, types
+
+## Development notes
+- The editor is a shell that currently renders a hardcoded sample site. To continue development consider:
+   - Integrating `@dnd-kit` for drag-and-drop
+   - Persisting editor state to Supabase (debounced autosave)
+   - Adding Supabase Auth and gating `/editor`
+   - Implementing publishing flow that toggles `isPublished`
+
+## Contributing
+Open an issue or submit a PR. If you add features, include README updates and tests where appropriate.
+
+## License
+MIT — see `LICENSE` if present.
+
+---
+
+If you'd like, I can (pick one):
+- add badges and CI integration
+- generate a short demo GIF and usage screenshots
+- expand the README with a detailed API section
+Tell me which and I'll update the README accordingly.
