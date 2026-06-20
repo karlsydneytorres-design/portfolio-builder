@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useEditorStore } from "@/lib/store";
 import DraggableBlock from "@/components/DraggableBlock";
-import { saveBlocks, getOrCreateSite } from "@/lib/api";
+import { saveBlocks, getOrCreateSite, setPublishStatus } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
 export default function EditorPage() {
@@ -14,6 +14,8 @@ export default function EditorPage() {
     "idle"
   );
   const [siteId, setSiteId] = useState<string | null>(null);
+  const [subdomain, setSubdomain] = useState<string | null>(null);
+  const [isPublished, setIsPublished] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -26,9 +28,11 @@ export default function EditorPage() {
         return;
       }
 
-      const subdomain = user.email?.split("@")[0] ?? "user";
-      const site = await getOrCreateSite(user.id, subdomain);
+      const sub = user.email?.split("@")[0] ?? "user";
+      const site = await getOrCreateSite(user.id, sub);
       setSiteId(site.id);
+      setSubdomain(site.subdomain);
+      setIsPublished(site.isPublished);
       setBlocks(site.blocks ?? []);
     }
 
@@ -59,6 +63,16 @@ export default function EditorPage() {
     }
   }
 
+  async function handlePublish() {
+    if (!siteId) return;
+    try {
+      await setPublishStatus(siteId, true);
+      setIsPublished(true);
+    } catch (err) {
+      console.error("Failed to publish:", err);
+    }
+  }
+
   return (
     <main className="relative h-screen w-full bg-gray-50">
       <div className="absolute left-0 top-0 z-10 flex items-center gap-3 bg-white p-2 text-sm text-gray-500 shadow">
@@ -71,6 +85,23 @@ export default function EditorPage() {
         </button>
         {status === "saved" && <span className="text-green-600">Saved ✓</span>}
         {status === "error" && <span className="text-red-600">Error saving</span>}
+
+        <button
+          onClick={handlePublish}
+          className="rounded bg-green-600 px-3 py-1 text-white"
+        >
+          {isPublished ? "Republish" : "Publish"}
+        </button>
+
+       {isPublished && subdomain && (
+          <a
+            href={`/${subdomain}`}
+            target="_blank"
+            className="text-blue-600 underline"
+          >
+            View live site →
+          </a>
+        )}
       </div>
       <DndContext onDragEnd={handleDragEnd}>
         <div className="relative h-full w-full">

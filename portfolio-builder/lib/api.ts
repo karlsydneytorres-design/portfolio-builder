@@ -40,3 +40,11 @@ export async function getOrCreateSite(userId: string, subdomain: string) {
   if (createError) throw createError;
   return created;
 }
+export async function setPublishStatus(siteId: string, isPublished: boolean) {
+  const { error } = await supabase
+    .from("sites")
+    .update({ isPublished })
+    .eq("id", siteId);
+
+  if (error) throw error;
+}
