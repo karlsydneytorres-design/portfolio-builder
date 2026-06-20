@@ -1,49 +1,39 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useEditorStore } from "@/lib/store";
 import DraggableBlock from "@/components/DraggableBlock";
-import { Site } from "@/lib/types";
-
-const sampleSite: Site = {
-  id: "demo",
-  userId: "demo-user",
-  subdomain: "demo",
-  theme: { colorScheme: "light", font: "sans-serif" },
-  isPublished: false,
-  blocks: [
-    {
-      id: "block-1",
-      type: "text",
-      position: { x: 40, y: 40 },
-      size: { width: 400, height: 80 },
-      zIndex: 1,
-      content: { text: "Hi, I'm building my portfolio here." },
-    },
-    {
-      id: "block-2",
-      type: "project_card",
-      position: { x: 40, y: 140 },
-      size: { width: 300, height: 200 },
-      zIndex: 1,
-      content: {
-        title: "Sample Project",
-        description: "A short description of the project.",
-        link: "https://example.com",
-      },
-    },
-  ],
-};
+import { saveBlocks, getOrCreateSite } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 
 export default function EditorPage() {
   const { blocks, setBlocks, updateBlockPosition } = useEditorStore();
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle"
+  );
+  const [siteId, setSiteId] = useState<string | null>(null);
+  const router = useRouter();
 
-  // Load sample data into the store on first render.
-  // Later, replace this with a fetch from Supabase.
   useEffect(() => {
-    setBlocks(sampleSite.blocks);
-  }, [setBlocks]);
+    async function init() {
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const subdomain = user.email?.split("@")[0] ?? "user";
+      const site = await getOrCreateSite(user.id, subdomain);
+      setSiteId(site.id);
+      setBlocks(site.blocks ?? []);
+    }
+
+    init().catch((err) => console.error("Failed to init editor:", err));
+  }, [router, setBlocks]);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, delta } = event;
@@ -57,10 +47,30 @@ export default function EditorPage() {
     );
   }
 
+  async function handleSave() {
+    if (!siteId) return;
+    setStatus("saving");
+    try {
+      await saveBlocks(siteId, blocks);
+      setStatus("saved");
+    } catch (err) {
+      console.error(err);
+      setStatus("error");
+    }
+  }
+
   return (
     <main className="relative h-screen w-full bg-gray-50">
-      <div className="absolute left-0 top-0 z-10 bg-white p-2 text-sm text-gray-500 shadow">
-        Drag the blocks below — positions are now live in Zustand state.
+      <div className="absolute left-0 top-0 z-10 flex items-center gap-3 bg-white p-2 text-sm text-gray-500 shadow">
+        <span>Drag blocks, then save to Supabase.</span>
+        <button
+          onClick={handleSave}
+          className="rounded bg-blue-600 px-3 py-1 text-white"
+        >
+          {status === "saving" ? "Saving..." : "Save"}
+        </button>
+        {status === "saved" && <span className="text-green-600">Saved ✓</span>}
+        {status === "error" && <span className="text-red-600">Error saving</span>}
       </div>
       <DndContext onDragEnd={handleDragEnd}>
         <div className="relative h-full w-full">
